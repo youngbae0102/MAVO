@@ -1,0 +1,43 @@
+---
+- name: Setup Nginx Load Balancer
+  hosts: loadbalancer
+  become: true
+
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Create Nginx upstream config for Flask app
+      copy:
+        dest: /etc/nginx/conf.d/flask_loadbalancer.conf
+        content: |
+          upstream flask_app {
+              server 10.10.8.101:5000;
+              server 10.10.8.102:5000;
+          }
+
+          server {
+              listen 80;
+
+              location / {
+                  proxy_pass http://flask_app;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+          }
+
+    - name: Remove default nginx site to avoid conflict
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Reload Nginx to apply changes
+      service:
+        name: nginx
+        state: reloaded
+

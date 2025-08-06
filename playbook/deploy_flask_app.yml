@@ -1,0 +1,24 @@
+---
+- name: Deploy Flask Music App
+  hosts: webservers
+  become: true
+
+  tasks:
+    - name: Copy app files to server
+      copy:
+        src: ../flask-music-app/
+        dest: /home/ubuntu/flask-music-app/
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Build Docker image with shell
+      shell: docker build -t flask-music-app .
+      args:
+        chdir: /home/ubuntu/flask-music-app/
+
+    - name: Run Flask container
+      shell: docker run -d -p 5000:5000 --name flask-music-app flask-music-app
+      args:
+        chdir: /home/ubuntu/flask-music-app/
+

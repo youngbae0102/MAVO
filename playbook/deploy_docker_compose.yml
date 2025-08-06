@@ -1,0 +1,19 @@
+---
+- name: Deploy Flask Music App via Docker Compose
+  hosts: webservers
+  become: true
+
+  tasks:
+    - name: Copy app directory to remote server
+      copy:
+        src: ../flask-music-app/
+        dest: /home/ubuntu/flask-music-app/
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Run docker compose up
+      shell: bash -lc "docker compose up -d --build --force-recreate"
+      args:
+        chdir: /home/ubuntu/flask-music-app/
+
