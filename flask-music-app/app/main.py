@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 import os
 
@@ -16,14 +16,14 @@ class Music(db.Model):
     title = db.Column(db.String(100), nullable=False)
     filename = db.Column(db.String(100), nullable=False)
 
-@app.before_first_request
 def create_tables():
-    db.create_all()
-    # 최초 실행 시 DB에 샘플 곡 1개 등록
-    if not Music.query.first():
-        sample = Music(title="Sample Song", filename="sample.mp3")
-        db.session.add(sample)
-        db.session.commit()
+    with app.app_context():
+        db.create_all()
+        # 최초 실행 시 DB에 샘플 곡 1개 등록
+        if not Music.query.first():
+            sample = Music(title="Sample Song", filename="sample.mp3")
+            db.session.add(sample)
+            db.session.commit()
 
 @app.route('/')
 def index():
@@ -43,5 +43,5 @@ def stream_music(filename):
     return send_from_directory('music', filename)
 
 if __name__ == '__main__':
+    create_tables()
     app.run(host='0.0.0.0', port=5000)
-
