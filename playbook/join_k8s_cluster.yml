@@ -1,0 +1,32 @@
+---
+- name: Join worker nodes to Kubernetes cluster
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Check if node is already joined
+      stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kubelet_conf
+
+    - name: Join worker nodes to cluster
+      shell: kubeadm join 10.10.8.100:6443 --token zrrk8s.sh8fgy52p5k5mbur --discovery-token-ca-cert-hash sha256:6bf47a9f9cbcdc04a3fe747cc7e8c44e1db878081c6167cf593635c4755f4dd4 --cri-socket=unix:///var/run/cri-dockerd.sock
+      register: join_result
+      when: not kubelet_conf.stat.exists
+      ignore_errors: yes
+
+    - name: Display join result
+      debug:
+        var: join_result.stdout_lines
+      when: join_result is defined
+
+    - name: Show skip message for already joined nodes
+      debug:
+        msg: "Node is already part of the cluster (kubelet.conf exists)"
+      when: kubelet_conf.stat.exists
+
+    - name: Check kubelet service status
+      systemd:
+        name: kubelet
+        state: started
+        enabled: yes
+      when: join_result is defined and join_result.rc == 0

@@ -1,0 +1,59 @@
+---
+- name: Setup Kubernetes 1.28 on Ubuntu 22.04 (Worker Nodes)
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Disable swap
+      shell: swapoff -a
+      ignore_errors: yes
+    - name: Remove swap from fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: '.*swap.*'
+        state: absent
+    - name: Remove old Kubernetes repo if exists
+      file:
+        path: /etc/apt/sources.list.d/kubernetes.list
+        state: absent
+    - name: Create keyrings directory
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+        update_cache: yes
+    - name: Download official Kubernetes GPG key
+      shell: |
+        curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      args:
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    - name: Add Kubernetes apt repository
+      lineinfile:
+        path: /etc/apt/sources.list.d/kubernetes.list
+        line: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /"
+        create: yes
+        mode: '0644'
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+    - name: Install kubelet, kubeadm, kubectl with specific version
+      apt:
+        name:
+          - "kubelet=1.28.15-1.1"
+          - "kubeadm=1.28.15-1.1"
+          - "kubectl=1.28.15-1.1"
+        state: present
+        update_cache: yes
+    - name: Hold kubelet, kubeadm, kubectl at current version
+      shell: |
+        apt-mark hold kubelet kubeadm kubectl
+      register: hold_result
+      changed_when: "'set on hold' in hold_result.stdout"

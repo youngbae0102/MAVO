@@ -1,0 +1,81 @@
+---
+- name: Install cri-dockerd on worker nodes (Docker already installed)
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Check if Docker is running
+      systemd:
+        name: docker
+      register: docker_status
+
+    - name: Display Docker status
+      debug:
+        msg: "Docker service is {{ docker_status.status.ActiveState }}"
+
+    - name: Start Docker if not running
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Download cri-dockerd
+      get_url:
+        url: "https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.4/cri-dockerd_0.3.4.3-0.ubuntu-jammy_amd64.deb"
+        dest: /tmp/cri-dockerd.deb
+        mode: '0644'
+
+    - name: Install cri-dockerd
+      apt:
+        deb: /tmp/cri-dockerd.deb
+        state: present
+
+    - name: Start and enable cri-dockerd
+      systemd:
+        name: cri-docker
+        state: started
+        enabled: yes
+
+    - name: Load required kernel modules
+      modprobe:
+        name: "{{ item }}"
+      loop:
+        - overlay
+        - br_netfilter
+
+    - name: Make kernel modules persistent
+      lineinfile:
+        path: /etc/modules-load.d/k8s.conf
+        line: "{{ item }}"
+        create: yes
+      loop:
+        - overlay
+        - br_netfilter
+
+    - name: Set sysctl parameters for Kubernetes
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        sysctl_file: /etc/sysctl.d/k8s.conf
+        reload: yes
+      loop:
+        - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+        - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+        - { name: 'net.ipv4.ip_forward', value: '1' }
+
+    - name: Verify cri-dockerd socket
+      stat:
+        path: /var/run/cri-dockerd.sock
+      register: cri_socket
+
+    - name: Display socket status
+      debug:
+        msg: "cri-dockerd socket exists: {{ cri_socket.stat.exists }}"
+
+    - name: Show cri-dockerd service status
+      shell: systemctl status cri-docker --no-pager
+      register: cri_status
+      changed_when: false
+
+    - name: Display cri-dockerd status
+      debug:
+        var: cri_status.stdout_lines
