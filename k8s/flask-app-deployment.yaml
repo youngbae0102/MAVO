@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-music-app
+  labels:
+    app: flask-music-app
+spec:
+  replicas: 2  # 2개의 워커 노드에 배포
+  selector:
+    matchLabels:
+      app: flask-music-app
+  template:
+    metadata:
+      labels:
+        app: flask-music-app
+    spec:
+      containers:
+      - name: flask-music-app
+        image: flask-music-app:v1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+        env:
+        - name: DB_HOST
+          value: "postgres-service"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "musicdb"
+        - name: DB_USER
+          value: "musicuser"
+        - name: DB_PASSWORD
+          value: "musicpass"
+        - name: FLASK_ENV
+          value: "production"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-music-service
+spec:
+  selector:
+    app: flask-music-app
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
+  type: NodePort  # 외부에서 접근 가능하도록 설정
