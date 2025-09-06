@@ -6,25 +6,11 @@ services:
     ports:
       - "5000:5000"
     restart: always
-    depends_on:
-      - flask_db
     environment:
-      - DB_HOST=flask_db
+      - DB_HOST=10.10.8.103
       - DB_PORT=5432
       - DB_NAME=musicdb
       - DB_USER=musicuser
       - DB_PASSWORD=musicpass
 
-  flask_db:
-    image: postgres:15
-    restart: always
-    environment:
-      POSTGRES_DB: musicdb
-      POSTGRES_USER: musicuser
-      POSTGRES_PASSWORD: musicpass
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-volumes:
-  pgdata:
 

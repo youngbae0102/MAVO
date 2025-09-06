@@ -1,0 +1,77 @@
+---
+- name: Install PostgreSQL on Database Server
+  hosts: database
+  become: yes
+  vars:
+    postgresql_version: "15"
+    db_name: "musicdb"
+    db_user: "musicuser"
+    db_password: "musicpass"
+    
+  tasks:
+    - name: Update package cache
+      apt:
+        update_cache: yes
+        
+    - name: Install PostgreSQL and dependencies
+      apt:
+        name:
+          - postgresql-{{ postgresql_version }}
+          - postgresql-contrib-{{ postgresql_version }}
+          - python3-psycopg2
+        state: present
+        
+    - name: Start and enable PostgreSQL service
+      systemd:
+        name: postgresql
+        state: started
+        enabled: yes
+        
+    - name: Configure PostgreSQL to listen on all addresses
+      lineinfile:
+        path: /etc/postgresql/{{ postgresql_version }}/main/postgresql.conf
+        regexp: "^#listen_addresses"
+        line: "listen_addresses = '*'"
+        backup: yes
+      notify: restart postgresql
+      
+    - name: Configure PostgreSQL client authentication
+      blockinfile:
+        path: /etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf
+        block: |
+          # Allow connections from web servers
+          host    all             all             10.10.8.101/32         md5
+          host    all             all             10.10.8.102/32         md5
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Web servers access"
+        backup: yes
+      notify: restart postgresql
+      
+    - name: Create database user
+      become_user: postgres
+      postgresql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        encrypted: yes
+        state: present
+        
+    - name: Create database
+      become_user: postgres
+      postgresql_db:
+        name: "{{ db_name }}"
+        owner: "{{ db_user }}"
+        state: present
+        
+    - name: Grant privileges to user
+      become_user: postgres
+      postgresql_privs:
+        db: "{{ db_name }}"
+        privs: ALL
+        type: database
+        obj: "{{ db_name }}"
+        role: "{{ db_user }}"
+        
+  handlers:
+    - name: restart postgresql
+      systemd:
+        name: postgresql
+        state: restarted
