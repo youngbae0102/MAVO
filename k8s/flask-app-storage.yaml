@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: flask-music-pv
+  labels:
+    app: flask-music-storage
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany  # 여러 파드에서 동시 접근 가능
+  persistentVolumeReclaimPolicy: Retain  # PVC 삭제 시에도 데이터 유지
+  storageClassName: manual
+  nfs:
+    server: 10.10.8.103      # NFS 서버 IP
+    path: /shared/flask-music # NFS 공유 경로
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: flask-music-pvc
+  labels:
+    app: flask-music-app
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: manual
+  selector:
+    matchLabels:
+      app: flask-music-storage

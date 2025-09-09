@@ -42,7 +42,7 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_upload_folder():
-    upload_folder = os.path.join(os.path.dirname(__file__), 'music')
+    upload_folder = '/app/music'  # 절대 경로로 변경 (NFS 마운트 포인트)
     os.makedirs(upload_folder, exist_ok=True)
     return upload_folder
 
@@ -236,3 +236,4 @@ def api_music_list():
 if __name__ == '__main__':
     create_tables()
     app.run(host='0.0.0.0', port=5000, debug=os.environ.get('FLASK_ENV') == 'development')
+

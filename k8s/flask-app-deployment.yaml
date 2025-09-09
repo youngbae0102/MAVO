@@ -16,23 +16,50 @@ spec:
     spec:
       containers:
       - name: flask-music-app
-        image: dudqo0102/flask-music-app-flask_web:v1
+        image: dudqo0102/flask-music-app-flask_web:v2
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
         env:
         - name: DB_HOST
-          value: "10.10.8.103"
+          valueFrom:
+            secretKeyRef:
+              name: flask-music-secret
+              key: DB_HOST
         - name: DB_PORT
-          value: "5432"
+          valueFrom:
+            secretKeyRef:
+              name: flask-music-secret
+              key: DB_PORT
         - name: DB_NAME
-          value: "musicdb"
+          valueFrom:
+            secretKeyRef:
+              name: flask-music-secret
+              key: DB_NAME
         - name: DB_USER
-          value: "musicuser"
+          valueFrom:
+            secretKeyRef:
+              name: flask-music-secret
+              key: DB_USER
         - name: DB_PASSWORD
-          value: "musicpass"
+          valueFrom:
+            secretKeyRef:
+              name: flask-music-secret
+              key: DB_PASSWORD
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: flask-music-secret
+              key: SECRET_KEY
         - name: FLASK_ENV
           value: "production"
+        volumeMounts:
+        - name: music-storage
+          mountPath: /app/music  # Flask 앱의 음악 파일 저장 경로
+      volumes:
+      - name: music-storage
+        persistentVolumeClaim:
+          claimName: flask-music-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -46,4 +73,5 @@ spec:
     port: 80
     targetPort: 5000
   type: NodePort  # 외부에서 접근 가능하도록 설정
+
 
