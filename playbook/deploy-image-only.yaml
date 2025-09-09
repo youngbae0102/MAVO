@@ -1,0 +1,37 @@
+---
+- name: Deploy Docker Image Only to All Servers
+  hosts: webservers
+  become: yes
+  vars:
+    docker_image_tar: flask-music-app.tar
+    docker_image: flask-music-app-flask_web:latest
+    
+  tasks:
+    - name: Copy Docker tar file to servers
+      copy:
+        src: "./{{ docker_image_tar }}"
+        dest: "/tmp/{{ docker_image_tar }}"
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+    - name: Load Docker image from tar file
+      docker_image:
+        name: "{{ docker_image }}"
+        load_path: "/tmp/{{ docker_image_tar }}"
+        source: load
+
+    - name: Verify image is loaded
+      docker_image_info:
+        name: "{{ docker_image }}"
+      register: image_info
+
+    - name: Display loaded image info
+      debug:
+        msg: "Image {{ docker_image }} successfully loaded on {{ inventory_hostname }}"
+      when: image_info.images | length > 0
+
+    - name: Clean up tar file
+      file:
+        path: "/tmp/{{ docker_image_tar }}"
+        state: absent

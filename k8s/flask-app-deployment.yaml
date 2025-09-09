@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
       - name: flask-music-app
-        image: flask-music-app:v1.0
-        imagePullPolicy: Never
+        image: dudqo0102/flask-music-app-flask_web:v1
+        imagePullPolicy: Always
         ports:
         - containerPort: 5000
         env:
@@ -46,3 +46,4 @@ spec:
     port: 80
     targetPort: 5000
   type: NodePort  # 외부에서 접근 가능하도록 설정
+
