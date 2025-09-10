@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: flask-music-app
-        image: dudqo0102/flask-music-app-flask_web:v2
+        image: dudqo0102/flask-music-app:v3
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
