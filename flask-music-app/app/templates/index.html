@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block styles %}
+.upload-form { background: #f9f9f9; padding: 20px; border-radius: 5px; margin-bottom: 30px; }
+.search-form { margin-bottom: 20px; }
+.music-item { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; background: white; }
+.music-title { font-weight: bold; font-size: 18px; color: #333; margin-bottom: 10px; }
+.music-info { color: #666; font-size: 12px; margin-bottom: 10px; }
+audio { width: 100%; margin: 10px 0; }
+{% endblock %}
+
+{% block content %}
+<!-- 업로드 폼 -->
+{% if current_user.is_authenticated %}
+<div class="upload-form">
+    <h3>새 음악 업로드</h3>
+    <form method="POST" action="{{ url_for('main.upload_music') }}" enctype="multipart/form-data">
+        <input type="text" name="title" placeholder="곡 제목" required>
+        <input type="file" name="music_file" accept=".mp3,.wav,.flac,.m4a,.ogg" required>
+        <button type="submit" class="btn btn-primary">업로드</button>
+    </form>
+</div>
+{% else %}
+<div class="upload-form" style="text-align: center;">
+    <h3>음악 업로드</h3>
+    <p>음악을 업로드하려면 로그인이 필요합니다.</p>
+    <a href="{{ url_for('auth.login') }}" class="btn btn-primary">로그인</a>
+    <a href="{{ url_for('auth.register') }}" class="btn btn-success">회원가입</a>
+</div>
+{% endif %}
+
+<!-- 검색 폼 -->
+<div class="search-form">
+    <form method="GET">
+        <input type="text" name="search" placeholder="음악 검색..." value="{{ search }}">
+        <button type="submit" class="btn btn-primary">검색</button>
+        <a href="{{ url_for('main.index') }}" class="btn">전체보기</a>
+    </form>
+</div>
+
+<!-- 음악 목록 -->
+<h3>음악 목록 ({{ songs|length }}곡)</h3>
+{% if songs %}
+    {% for song in songs %}
+        <div class="music-item">
+            <div class="music-title">{{ song.title }}</div>
+            <div class="music-info">
+                원본 파일명: {{ song.original_filename }} | 
+                크기: {{ "%.1f"|format(song.file_size/1024/1024) if song.file_size else "N/A" }} MB | 
+                업로드: {{ song.upload_date.strftime('%Y-%m-%d %H:%M') if song.upload_date else "N/A" }} |
+                업로더: {{ song.uploader.username if song.uploader else "Unknown" }}
+            </div>
+            <audio controls preload="none">
+                <source src="{{ url_for('main.stream_music', filename=song.filename) }}" type="audio/mpeg">
+                브라우저가 오디오를 지원하지 않습니다.
+            </audio>
+            {% if current_user.is_authenticated and current_user.id == song.user_id %}
+            <form method="POST" action="{{ url_for('main.delete_music', music_id=song.id) }}" style="display: inline;" onsubmit="return confirm('정말 삭제하시겠습니까?')">
+                <button type="submit" class="btn btn-danger">삭제</button>
+            </form>
+            {% endif %}
+        </div>
+    {% endfor %}
+{% else %}
+    <p>업로드된 음악이 없습니다.</p>
+{% endif %}
+{% endblock %}
