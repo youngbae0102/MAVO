@@ -74,3 +74,4 @@ spec:
     targetPort: 5000
   type: NodePort  # 외부에서 접근 가능하도록 설정
 
+
